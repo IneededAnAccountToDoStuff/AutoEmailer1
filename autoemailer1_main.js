@@ -95,3 +95,9 @@ async function handler() {
     await new Promise((r) => setTimeout(r, 3000));
   }
 }
+
+// Export the pure logic for unit testing. Guarded so the file still runs as a
+// plain browser-console script, where `module` is undefined.
+if (typeof module !== 'undefined' && module.exports) {
+  module.exports = { generator, shuffle };
+}
