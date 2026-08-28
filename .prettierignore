@@ -1,3 +1,4 @@
 node_modules/
 .isaac/
+dist/
 bun.lock

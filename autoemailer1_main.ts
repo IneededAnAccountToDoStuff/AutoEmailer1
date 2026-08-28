@@ -1,37 +1,57 @@
-'use strict';
-
 // AutoEmailer1 — a browser-console script that drives the Outlook web client to
 // send one email per recipient with their computed question assignments.
 
+type Difficulty = 'basic' | 'intermediate' | 'hard';
+
+// Number of problems at each difficulty. Any omitted field counts as 0.
+type DifficultyCounts = { basic?: number; intermediate?: number; hard?: number };
+
+// Inclusive, 1-indexed [first, last] problem-number range.
+type ProblemRange = [number, number];
+
+type DifficultyRangeMap = Record<Difficulty, ProblemRange | null>;
+
+type GeneratorResult = {
+  // Per-recipient lists of 1-indexed problem numbers.
+  assignments: number[][];
+  // Problem number -> its difficulty.
+  difficulty: Record<number, Difficulty>;
+  // Problem-number range per difficulty (null when that difficulty is empty).
+  ranges: DifficultyRangeMap;
+};
+
 // Type the recipient address into the "To" field of the open compose window.
-function set_address(address) {
-  [...document.querySelectorAll('div>[contenteditable="true"]')]
+function set_address(address: string): void {
+  [...document.querySelectorAll<HTMLElement>('div>[contenteditable="true"]')]
     .filter(
       (i) =>
-        i.parentElement.parentElement.parentElement.parentElement.parentElement.parentElement
-          .children[0].textContent == 'To',
+        i.parentElement!.parentElement!.parentElement!.parentElement!.parentElement!.parentElement!
+          .children[0].textContent === 'To',
     )[0]
     .focus();
   document.execCommand('insertText', false, address);
 }
 
 // Type the subject line into the compose window.
-function setsubject(text) {
-  document.querySelector('input[placeholder="Add a subject"][aria-label="Subject"]').focus();
+function setsubject(text: string): void {
+  document
+    .querySelector<HTMLInputElement>('input[placeholder="Add a subject"][aria-label="Subject"]')!
+    .focus();
   document.execCommand('insertText', false, text);
 }
 
 // Type the message body into the compose window.
-function set_body(body) {
-  document.querySelector('[contenteditable="true"][aria-multiline=true]').focus();
+function set_body(body: string): void {
+  document.querySelector<HTMLElement>('[contenteditable="true"][aria-multiline=true]')!.focus();
   document.execCommand('insertText', false, body);
 }
 
 // Open a fresh compose window and fill in body, subject, address, then send.
-async function send_email(address, subject, body) {
-  [...document.querySelectorAll('.ribbon-menu-text')]
-    .filter((a) => a.firstChild.textContent === 'New')[0]
-    .parentElement.previousElementSibling.click();
+async function send_email(address: string, subject: string, body: string): Promise<void> {
+  const newButton = [...document.querySelectorAll<HTMLElement>('.ribbon-menu-text')].filter(
+    (a) => a.firstChild!.textContent === 'New',
+  )[0];
+  (newButton.parentElement!.previousElementSibling as HTMLElement).click();
   await new Promise((r) => setTimeout(r, 3000));
   set_body(body);
   await new Promise((r) => setTimeout(r, 2000));
@@ -39,17 +59,23 @@ async function send_email(address, subject, body) {
   await new Promise((r) => setTimeout(r, 2000));
   set_address(address);
   await new Promise((r) => setTimeout(r, 2000));
-  document.querySelector('button[aria-label="Send"][title="Send (Ctrl+Enter)"]').click();
+  document
+    .querySelector<HTMLButtonElement>('button[aria-label="Send"][title="Send (Ctrl+Enter)"]')!
+    .click();
 }
 
 // Given difficulty counts, return the inclusive, 1-indexed problem-number range
 // for each difficulty (or null when that difficulty has no problems). Problems
 // are numbered in order: basic first, then intermediate, then hard.
-function difficultyRanges({ basic = 0, intermediate = 0, hard = 0 } = {}) {
+function difficultyRanges({
+  basic = 0,
+  intermediate = 0,
+  hard = 0,
+}: DifficultyCounts = {}): DifficultyRangeMap {
   let next = 1;
-  const take = (n) => {
+  const take = (n: number): ProblemRange | null => {
     if (n <= 0) return null;
-    const range = [next, next + n - 1];
+    const range: ProblemRange = [next, next + n - 1];
     next += n;
     return range;
   };
@@ -62,10 +88,14 @@ function difficultyRanges({ basic = 0, intermediate = 0, hard = 0 } = {}) {
 
 // Build a one-line difficulty legend from ranges, e.g.
 // "Difficulty — Basic: Q1-Q3, Intermediate: Q4-Q7, Hard: Q8-Q9".
-function formatLegend(ranges) {
-  const labels = { basic: 'Basic', intermediate: 'Intermediate', hard: 'Hard' };
-  const parts = [];
-  for (const key of ['basic', 'intermediate', 'hard']) {
+function formatLegend(ranges: DifficultyRangeMap): string {
+  const labels: Record<Difficulty, string> = {
+    basic: 'Basic',
+    intermediate: 'Intermediate',
+    hard: 'Hard',
+  };
+  const parts: string[] = [];
+  for (const key of ['basic', 'intermediate', 'hard'] as const) {
     const range = ranges[key];
     if (!range) continue;
     const [lo, hi] = range;
@@ -80,19 +110,17 @@ function formatLegend(ranges) {
 //
 // `counts` is a { basic, intermediate, hard } object; a plain number is also
 // accepted and treated as that many basic problems.
-//
-// Returns:
-//   assignments — array of N arrays of 1-indexed problem numbers, one per recipient
-//   difficulty  — map of problem number -> 'basic' | 'intermediate' | 'hard'
-//   ranges      — inclusive problem-number range per difficulty (see difficultyRanges)
-function generator(counts = { basic: 3, intermediate: 4, hard: 2 }, N = 5, s = 3) {
-  if (typeof counts === 'number') {
-    counts = { basic: counts, intermediate: 0, hard: 0 };
-  }
-  const { basic = 0, intermediate = 0, hard = 0 } = counts;
+function generator(
+  counts: DifficultyCounts | number = { basic: 3, intermediate: 4, hard: 2 },
+  N: number = 5,
+  s: number = 3,
+): GeneratorResult {
+  const resolved: DifficultyCounts =
+    typeof counts === 'number' ? { basic: counts, intermediate: 0, hard: 0 } : counts;
+  const { basic = 0, intermediate = 0, hard = 0 } = resolved;
   const Q = basic + intermediate + hard;
 
-  const assignments = Array(N)
+  const assignments: number[][] = Array(N)
     .fill(0)
     .map(() => []);
   for (let q = 0; q < Q; q++) {
@@ -102,8 +130,9 @@ function generator(counts = { basic: 3, intermediate: 4, hard: 2 }, N = 5, s = 3
   }
 
   const ranges = difficultyRanges({ basic, intermediate, hard });
-  const difficulty = {};
-  for (const [label, range] of Object.entries(ranges)) {
+  const difficulty: Record<number, Difficulty> = {};
+  for (const label of ['basic', 'intermediate', 'hard'] as const) {
+    const range = ranges[label];
     if (!range) continue;
     for (let q = range[0]; q <= range[1]; q++) {
       difficulty[q] = label;
@@ -114,9 +143,9 @@ function generator(counts = { basic: 3, intermediate: 4, hard: 2 }, N = 5, s = 3
 }
 
 // Fisher-Yates in-place shuffle.
-function shuffle(d) {
+function shuffle<T>(d: T[]): T[] {
   for (let i = d.length; i > 1;) {
-    let j = (Math.random() * i--) | 0;
+    const j = (Math.random() * i--) | 0;
     [d[i], d[j]] = [d[j], d[i]];
   }
   return d;
@@ -124,8 +153,8 @@ function shuffle(d) {
 
 // Prompt for a non-negative integer count of `label` problems. Returns the
 // number, or null if the user cancels or enters something invalid.
-function promptCount(label, fallback) {
-  const raw = prompt(`# ${label} problems`, fallback);
+function promptCount(label: string, fallback: number): number | null {
+  const raw = prompt(`# ${label} problems`, String(fallback));
   if (raw === null) return null;
   const n = +raw;
   if (raw === '' || isNaN(n) || n < 0) {
@@ -135,10 +164,10 @@ function promptCount(label, fallback) {
   return n;
 }
 
-async function handler() {
-  let addrstr =
+async function handler(): Promise<void> {
+  const addrstr =
     'wdbensler@mines.edu,dshin@mines.edu,matthew_cool@mines.edu,aiden_ferris@mines.edu,lorin_dawson@mines.edu';
-  let addresses = addrstr.split(',');
+  const addresses = addrstr.split(',');
   addresses.sort();
 
   const basic = promptCount('basic', 3);
@@ -168,8 +197,17 @@ async function handler() {
   }
 }
 
-// Export the pure logic for unit testing. Guarded so the file still runs as a
-// plain browser-console script, where `module` is undefined.
-if (typeof module !== 'undefined' && module.exports) {
-  module.exports = { generator, shuffle, difficultyRanges, formatLegend };
-}
+// Expose the entry points on the global scope so the built bundle
+// (`bun run build` -> dist/autoemailer1_main.js) can be pasted into the browser
+// console and driven with `handler()`.
+Object.assign(globalThis, {
+  handler,
+  send_email,
+  generator,
+  shuffle,
+  difficultyRanges,
+  formatLegend,
+});
+
+// Export the pure logic for unit testing and reuse.
+export { generator, shuffle, difficultyRanges, formatLegend };

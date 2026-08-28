@@ -1,11 +1,9 @@
-'use strict';
-
-const { test, expect, describe, afterEach } = require('bun:test');
-const { generator, shuffle, difficultyRanges, formatLegend } = require('./autoemailer1_main.js');
+import { test, expect, describe, afterEach } from 'bun:test';
+import { generator, shuffle, difficultyRanges, formatLegend } from './autoemailer1_main.ts';
 
 // Count how many times each problem number appears across all recipients.
-function countAssignments(np) {
-  const counts = new Map();
+function countAssignments(np: number[][]): Map<number, number> {
+  const counts = new Map<number, number>();
   for (const recipient of np) {
     for (const problem of recipient) {
       counts.set(problem, (counts.get(problem) ?? 0) + 1);
@@ -106,17 +104,14 @@ describe('generator', () => {
 });
 
 describe('shuffle', () => {
+  const realRandom = Math.random;
   afterEach(() => {
-    // Restore the real RNG after tests that stub it.
-    if (Math.random.mock) {
-      Math.random = Math.random.original;
-    }
+    Math.random = realRandom;
   });
 
   test('shuffles in place and returns the same array reference', () => {
     const d = [1, 2, 3, 4, 5];
-    const result = shuffle(d);
-    expect(result).toBe(d);
+    expect(shuffle(d)).toBe(d);
   });
 
   test('preserves all elements (is a permutation)', () => {
@@ -126,12 +121,7 @@ describe('shuffle', () => {
   });
 
   test('is deterministic given a fixed RNG', () => {
-    const original = Math.random;
-    const stub = () => 0; // always pick index 0
-    stub.mock = true;
-    stub.original = original;
-    Math.random = stub;
-
+    Math.random = () => 0; // always pick index 0
     // With random() === 0, Fisher-Yates rotates the last element to the front
     // at each step, leaving the head element last.
     expect(shuffle([1, 2, 3, 4])).toEqual([2, 3, 4, 1]);
