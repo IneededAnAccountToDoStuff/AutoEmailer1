@@ -45,5 +45,13 @@ anything, call:
 handler({ dryRun: true });
 ```
 
-It still asks for the three counts, then prints each recipient's subject and
-body to the console. Recommended before a real run.
+It still asks for the recipients and counts, then prints each recipient's
+subject and body to the console. Recommended before a real run.
+
+## How it works
+
+`generator` computes the question assignments and `planEmails` turns them into
+the per-recipient emails. `handler` collects the recipients and difficulty
+counts, then either prints the plan (dry run) or sends each email via
+`send_email`, which drives outlook.com using `set_address`, `setsubject`, and
+`set_body`.
