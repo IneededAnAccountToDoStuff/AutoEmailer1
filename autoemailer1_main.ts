@@ -190,13 +190,20 @@ function promptCount(label: string, fallback: number): number | null {
   return n;
 }
 
+// Recipient email addresses. Replace these placeholders with the real
+// addresses before running.
+const RECIPIENTS: string[] = [
+  'recipient1@example.com',
+  'recipient2@example.com',
+  'recipient3@example.com',
+  'recipient4@example.com',
+  'recipient5@example.com',
+];
+
 // Run the emailer. Pass `{ dryRun: true }` to print the computed plan to the
 // console without opening any compose window or sending anything.
 async function handler({ dryRun = false }: { dryRun?: boolean } = {}): Promise<void> {
-  const addrstr =
-    'wdbensler@mines.edu,dshin@mines.edu,matthew_cool@mines.edu,aiden_ferris@mines.edu,lorin_dawson@mines.edu';
-  const addresses = addrstr.split(',');
-  addresses.sort();
+  const addresses = [...RECIPIENTS].sort();
 
   const basic = promptCount('basic', 3);
   if (basic === null) return;
