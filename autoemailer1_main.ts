@@ -151,6 +151,32 @@ function shuffle<T>(d: T[]): T[] {
   return d;
 }
 
+const SUBJECT = 'Question Assignments Calculation';
+
+// A single email the run would send.
+type PlannedEmail = { address: string; problems: number[]; subject: string; body: string };
+
+// Pure: build the full list of emails for the given counts and recipients,
+// without touching the DOM. Both the real send and the dry run operate on this.
+function planEmails(
+  counts: DifficultyCounts | number,
+  addresses: string[],
+  s: number = 3,
+): PlannedEmail[] {
+  const { assignments, ranges } = generator(counts, addresses.length, s);
+  const legend = formatLegend(ranges);
+  return assignments.map((problems, i) => {
+    const address = addresses[i];
+    const content = problems.map((r) => 'Q' + r).join(',');
+    return {
+      address,
+      problems,
+      subject: SUBJECT,
+      body: `Computed Assignments: ${content}\n${legend}\nBelieved Address: ${address}`,
+    };
+  });
+}
+
 // Prompt for a non-negative integer count of `label` problems. Returns the
 // number, or null if the user cancels or enters something invalid.
 function promptCount(label: string, fallback: number): number | null {
@@ -164,7 +190,9 @@ function promptCount(label: string, fallback: number): number | null {
   return n;
 }
 
-async function handler(): Promise<void> {
+// Run the emailer. Pass `{ dryRun: true }` to print the computed plan to the
+// console without opening any compose window or sending anything.
+async function handler({ dryRun = false }: { dryRun?: boolean } = {}): Promise<void> {
   const addrstr =
     'wdbensler@mines.edu,dshin@mines.edu,matthew_cool@mines.edu,aiden_ferris@mines.edu,lorin_dawson@mines.edu';
   const addresses = addrstr.split(',');
@@ -182,17 +210,18 @@ async function handler(): Promise<void> {
     return;
   }
 
-  const { assignments, ranges } = generator({ basic, intermediate, hard }, addresses.length);
-  const legend = formatLegend(ranges);
+  const emails = planEmails({ basic, intermediate, hard }, addresses);
 
-  for (let i = 0; i < assignments.length; i++) {
-    const addr = addresses[i];
-    const content = assignments[i].map((r) => 'Q' + r).join(',');
-    await send_email(
-      addr,
-      `Question Assignments Calculation`,
-      `Computed Assignments: ${content}\n${legend}\nBelieved Address: ${addr}`,
-    );
+  if (dryRun) {
+    console.log(`[AutoEmailer1] Dry run — ${emails.length} email(s) would be sent (nothing sent):`);
+    for (const { address, subject, body } of emails) {
+      console.log(`\nTo: ${address}\nSubject: ${subject}\n${body}`);
+    }
+    return;
+  }
+
+  for (const { address, subject, body } of emails) {
+    await send_email(address, subject, body);
     await new Promise((r) => setTimeout(r, 3000));
   }
 }
@@ -207,7 +236,8 @@ Object.assign(globalThis, {
   shuffle,
   difficultyRanges,
   formatLegend,
+  planEmails,
 });
 
 // Export the pure logic for unit testing and reuse.
-export { generator, shuffle, difficultyRanges, formatLegend };
+export { generator, shuffle, difficultyRanges, formatLegend, planEmails };

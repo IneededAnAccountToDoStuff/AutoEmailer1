@@ -1,5 +1,11 @@
 import { test, expect, describe, afterEach } from 'bun:test';
-import { generator, shuffle, difficultyRanges, formatLegend } from './autoemailer1_main.ts';
+import {
+  generator,
+  shuffle,
+  difficultyRanges,
+  formatLegend,
+  planEmails,
+} from './autoemailer1_main.ts';
 
 // Count how many times each problem number appears across all recipients.
 function countAssignments(np: number[][]): Map<number, number> {
@@ -100,6 +106,34 @@ describe('generator', () => {
     const { assignments, difficulty } = generator({}, 5, 3);
     expect(assignments).toEqual([[], [], [], [], []]);
     expect(difficulty).toEqual({});
+  });
+});
+
+describe('planEmails', () => {
+  const addresses = ['a@x.edu', 'b@x.edu', 'c@x.edu'];
+
+  test('builds one email per recipient with subject, address, and body', () => {
+    const emails = planEmails({ basic: 3 }, addresses, 1);
+    expect(emails).toHaveLength(3);
+    for (let i = 0; i < addresses.length; i++) {
+      expect(emails[i].address).toBe(addresses[i]);
+      expect(emails[i].subject).toBe('Question Assignments Calculation');
+      expect(emails[i].body).toContain(`Believed Address: ${addresses[i]}`);
+    }
+  });
+
+  test('lists the assigned problem numbers and a difficulty legend in the body', () => {
+    // s=1: recipient 0 gets Q1, recipient 1 gets Q2, recipient 2 gets Q3.
+    const emails = planEmails({ basic: 1, intermediate: 1, hard: 1 }, addresses, 1);
+    expect(emails[0].problems).toEqual([1]);
+    expect(emails[0].body).toContain('Computed Assignments: Q1');
+    expect(emails[0].body).toContain('Difficulty — Basic: Q1, Intermediate: Q2, Hard: Q3');
+  });
+
+  test('accepts a plain number as that many basic problems', () => {
+    const emails = planEmails(3, addresses, 1);
+    expect(emails[1].problems).toEqual([2]);
+    expect(emails[1].body).toContain('Difficulty — Basic: Q1-Q3');
   });
 });
 

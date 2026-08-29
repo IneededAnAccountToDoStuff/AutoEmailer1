@@ -34,3 +34,15 @@ bun install
    file's contents.
 3. Call `handler()` and answer the prompts for the number of basic,
    intermediate, and hard problems.
+
+### Dry run
+
+To preview what would be sent without opening a compose window or sending
+anything, call:
+
+```js
+handler({ dryRun: true });
+```
+
+It still asks for the three counts, then prints each recipient's subject and
+body to the console. Recommended before a real run.
