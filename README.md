@@ -32,8 +32,9 @@ bun install
 1. `bun run build` to produce `dist/autoemailer1_main.js`.
 2. Open the Outlook web client, open the browser console, and paste the built
    file's contents.
-3. Call `handler()` and answer the prompts for the number of basic,
-   intermediate, and hard problems.
+3. Call `handler()` and answer the prompts: first a comma-separated list of
+   recipient emails (prefilled with the `RECIPIENTS` defaults), then the number
+   of basic, intermediate, and hard problems.
 
 ### Dry run
 

@@ -5,6 +5,7 @@ import {
   difficultyRanges,
   formatLegend,
   planEmails,
+  parseRecipients,
 } from './autoemailer1_main.ts';
 
 // Count how many times each problem number appears across all recipients.
@@ -106,6 +107,24 @@ describe('generator', () => {
     const { assignments, difficulty } = generator({}, 5, 3);
     expect(assignments).toEqual([[], [], [], [], []]);
     expect(difficulty).toEqual({});
+  });
+});
+
+describe('parseRecipients', () => {
+  test('splits, trims, and sorts addresses', () => {
+    expect(parseRecipients('c@x.edu, a@x.edu ,b@x.edu')).toEqual(['a@x.edu', 'b@x.edu', 'c@x.edu']);
+  });
+
+  test('drops empty entries from stray or trailing commas', () => {
+    expect(parseRecipients('a@x.edu,,b@x.edu,')).toEqual(['a@x.edu', 'b@x.edu']);
+  });
+
+  test('de-duplicates repeated addresses', () => {
+    expect(parseRecipients('a@x.edu,b@x.edu,a@x.edu')).toEqual(['a@x.edu', 'b@x.edu']);
+  });
+
+  test('returns an empty list for blank input', () => {
+    expect(parseRecipients('   ,  , ')).toEqual([]);
   });
 });
 

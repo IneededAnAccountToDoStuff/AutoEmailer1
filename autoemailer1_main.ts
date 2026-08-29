@@ -177,6 +177,17 @@ function planEmails(
   });
 }
 
+// Parse a comma-separated address string into a trimmed, de-duplicated, sorted
+// list of recipient addresses.
+function parseRecipients(raw: string): string[] {
+  const seen = new Set<string>();
+  for (const addr of raw.split(',')) {
+    const trimmed = addr.trim();
+    if (trimmed) seen.add(trimmed);
+  }
+  return [...seen].sort();
+}
+
 // Prompt for a non-negative integer count of `label` problems. Returns the
 // number, or null if the user cancels or enters something invalid.
 function promptCount(label: string, fallback: number): number | null {
@@ -190,8 +201,8 @@ function promptCount(label: string, fallback: number): number | null {
   return n;
 }
 
-// Recipient email addresses. Replace these placeholders with the real
-// addresses before running.
+// Default recipient addresses, offered as the prefilled value of the prompt.
+// Replace these placeholders, or just edit the list at the prompt.
 const RECIPIENTS: string[] = [
   'recipient1@example.com',
   'recipient2@example.com',
@@ -203,7 +214,13 @@ const RECIPIENTS: string[] = [
 // Run the emailer. Pass `{ dryRun: true }` to print the computed plan to the
 // console without opening any compose window or sending anything.
 async function handler({ dryRun = false }: { dryRun?: boolean } = {}): Promise<void> {
-  const addresses = [...RECIPIENTS].sort();
+  const rawRecipients = prompt('Recipient emails (comma-separated)', RECIPIENTS.join(','));
+  if (rawRecipients === null) return;
+  const addresses = parseRecipients(rawRecipients);
+  if (addresses.length === 0) {
+    alert('No recipients provided');
+    return;
+  }
 
   const basic = promptCount('basic', 3);
   if (basic === null) return;
@@ -244,7 +261,8 @@ Object.assign(globalThis, {
   difficultyRanges,
   formatLegend,
   planEmails,
+  parseRecipients,
 });
 
 // Export the pure logic for unit testing and reuse.
-export { generator, shuffle, difficultyRanges, formatLegend, planEmails };
+export { generator, shuffle, difficultyRanges, formatLegend, planEmails, parseRecipients };
