@@ -1,31 +1,14 @@
+'use strict';
+
 // AutoEmailer1 — a browser-console script that drives the Outlook web client to
 // send one email per recipient with their computed question assignments.
 
-type Difficulty = 'basic' | 'intermediate' | 'hard';
-
-// Number of problems at each difficulty. Any omitted field counts as 0.
-type DifficultyCounts = { basic?: number; intermediate?: number; hard?: number };
-
-// Inclusive, 1-indexed [first, last] problem-number range.
-type ProblemRange = [number, number];
-
-type DifficultyRangeMap = Record<Difficulty, ProblemRange | null>;
-
-type GeneratorResult = {
-  // Per-recipient lists of 1-indexed problem numbers.
-  assignments: number[][];
-  // Problem number -> its difficulty.
-  difficulty: Record<number, Difficulty>;
-  // Problem-number range per difficulty (null when that difficulty is empty).
-  ranges: DifficultyRangeMap;
-};
-
 // Type the recipient address into the "To" field of the open compose window.
-function set_address(address: string): void {
-  [...document.querySelectorAll<HTMLElement>('div>[contenteditable="true"]')]
+function set_address(address) {
+  [...document.querySelectorAll('div>[contenteditable="true"]')]
     .filter(
       (i) =>
-        i.parentElement!.parentElement!.parentElement!.parentElement!.parentElement!.parentElement!
+        i.parentElement.parentElement.parentElement.parentElement.parentElement.parentElement
           .children[0].textContent === 'To',
     )[0]
     .focus();
@@ -33,25 +16,23 @@ function set_address(address: string): void {
 }
 
 // Type the subject line into the compose window.
-function setsubject(text: string): void {
-  document
-    .querySelector<HTMLInputElement>('input[placeholder="Add a subject"][aria-label="Subject"]')!
-    .focus();
+function setsubject(text) {
+  document.querySelector('input[placeholder="Add a subject"][aria-label="Subject"]').focus();
   document.execCommand('insertText', false, text);
 }
 
 // Type the message body into the compose window.
-function set_body(body: string): void {
-  document.querySelector<HTMLElement>('[contenteditable="true"][aria-multiline=true]')!.focus();
+function set_body(body) {
+  document.querySelector('[contenteditable="true"][aria-multiline=true]').focus();
   document.execCommand('insertText', false, body);
 }
 
 // Open a fresh compose window and fill in body, subject, address, then send.
-async function send_email(address: string, subject: string, body: string): Promise<void> {
-  const newButton = [...document.querySelectorAll<HTMLElement>('.ribbon-menu-text')].filter(
-    (a) => a.firstChild!.textContent === 'New',
+async function send_email(address, subject, body) {
+  const newButton = [...document.querySelectorAll('.ribbon-menu-text')].filter(
+    (a) => a.firstChild.textContent === 'New',
   )[0];
-  (newButton.parentElement!.previousElementSibling as HTMLElement).click();
+  newButton.parentElement.previousElementSibling.click();
   await new Promise((r) => setTimeout(r, 3000));
   set_body(body);
   await new Promise((r) => setTimeout(r, 2000));
@@ -59,23 +40,17 @@ async function send_email(address: string, subject: string, body: string): Promi
   await new Promise((r) => setTimeout(r, 2000));
   set_address(address);
   await new Promise((r) => setTimeout(r, 2000));
-  document
-    .querySelector<HTMLButtonElement>('button[aria-label="Send"][title="Send (Ctrl+Enter)"]')!
-    .click();
+  document.querySelector('button[aria-label="Send"][title="Send (Ctrl+Enter)"]').click();
 }
 
 // Given difficulty counts, return the inclusive, 1-indexed problem-number range
 // for each difficulty (or null when that difficulty has no problems). Problems
 // are numbered in order: basic first, then intermediate, then hard.
-function difficultyRanges({
-  basic = 0,
-  intermediate = 0,
-  hard = 0,
-}: DifficultyCounts = {}): DifficultyRangeMap {
+function difficultyRanges({ basic = 0, intermediate = 0, hard = 0 } = {}) {
   let next = 1;
-  const take = (n: number): ProblemRange | null => {
+  const take = (n) => {
     if (n <= 0) return null;
-    const range: ProblemRange = [next, next + n - 1];
+    const range = [next, next + n - 1];
     next += n;
     return range;
   };
@@ -88,14 +63,10 @@ function difficultyRanges({
 
 // Build a one-line difficulty legend from ranges, e.g.
 // "Difficulty — Basic: Q1-Q3, Intermediate: Q4-Q7, Hard: Q8-Q9".
-function formatLegend(ranges: DifficultyRangeMap): string {
-  const labels: Record<Difficulty, string> = {
-    basic: 'Basic',
-    intermediate: 'Intermediate',
-    hard: 'Hard',
-  };
-  const parts: string[] = [];
-  for (const key of ['basic', 'intermediate', 'hard'] as const) {
+function formatLegend(ranges) {
+  const labels = { basic: 'Basic', intermediate: 'Intermediate', hard: 'Hard' };
+  const parts = [];
+  for (const key of ['basic', 'intermediate', 'hard']) {
     const range = ranges[key];
     if (!range) continue;
     const [lo, hi] = range;
@@ -110,17 +81,18 @@ function formatLegend(ranges: DifficultyRangeMap): string {
 //
 // `counts` is a { basic, intermediate, hard } object; a plain number is also
 // accepted and treated as that many basic problems.
-function generator(
-  counts: DifficultyCounts | number = { basic: 3, intermediate: 4, hard: 2 },
-  N: number = 5,
-  s: number = 3,
-): GeneratorResult {
-  const resolved: DifficultyCounts =
+//
+// Returns:
+//   assignments — array of N arrays of 1-indexed problem numbers, one per recipient
+//   difficulty  — map of problem number -> 'basic' | 'intermediate' | 'hard'
+//   ranges      — inclusive problem-number range per difficulty (see difficultyRanges)
+function generator(counts = { basic: 3, intermediate: 4, hard: 2 }, N = 5, s = 3) {
+  const resolved =
     typeof counts === 'number' ? { basic: counts, intermediate: 0, hard: 0 } : counts;
   const { basic = 0, intermediate = 0, hard = 0 } = resolved;
   const Q = basic + intermediate + hard;
 
-  const assignments: number[][] = Array(N)
+  const assignments = Array(N)
     .fill(0)
     .map(() => []);
   for (let q = 0; q < Q; q++) {
@@ -130,8 +102,8 @@ function generator(
   }
 
   const ranges = difficultyRanges({ basic, intermediate, hard });
-  const difficulty: Record<number, Difficulty> = {};
-  for (const label of ['basic', 'intermediate', 'hard'] as const) {
+  const difficulty = {};
+  for (const label of ['basic', 'intermediate', 'hard']) {
     const range = ranges[label];
     if (!range) continue;
     for (let q = range[0]; q <= range[1]; q++) {
@@ -143,7 +115,7 @@ function generator(
 }
 
 // Fisher-Yates in-place shuffle.
-function shuffle<T>(d: T[]): T[] {
+function shuffle(d) {
   for (let i = d.length; i > 1;) {
     const j = (Math.random() * i--) | 0;
     [d[i], d[j]] = [d[j], d[i]];
@@ -153,16 +125,10 @@ function shuffle<T>(d: T[]): T[] {
 
 const SUBJECT = 'Question Assignments Calculation';
 
-// A single email the run would send.
-type PlannedEmail = { address: string; problems: number[]; subject: string; body: string };
-
 // Pure: build the full list of emails for the given counts and recipients,
 // without touching the DOM. Both the real send and the dry run operate on this.
-function planEmails(
-  counts: DifficultyCounts | number,
-  addresses: string[],
-  s: number = 3,
-): PlannedEmail[] {
+// Each email is { address, problems, subject, body }.
+function planEmails(counts, addresses, s = 3) {
   const { assignments, ranges } = generator(counts, addresses.length, s);
   const legend = formatLegend(ranges);
   return assignments.map((problems, i) => {
@@ -179,8 +145,8 @@ function planEmails(
 
 // Parse a comma-separated address string into a trimmed, de-duplicated, sorted
 // list of recipient addresses.
-function parseRecipients(raw: string): string[] {
-  const seen = new Set<string>();
+function parseRecipients(raw) {
+  const seen = new Set();
   for (const addr of raw.split(',')) {
     const trimmed = addr.trim();
     if (trimmed) seen.add(trimmed);
@@ -190,7 +156,7 @@ function parseRecipients(raw: string): string[] {
 
 // Prompt for a non-negative integer count of `label` problems. Returns the
 // number, or null if the user cancels or enters something invalid.
-function promptCount(label: string, fallback: number): number | null {
+function promptCount(label, fallback) {
   const raw = prompt(`# ${label} problems`, String(fallback));
   if (raw === null) return null;
   const n = +raw;
@@ -203,7 +169,7 @@ function promptCount(label: string, fallback: number): number | null {
 
 // Default recipient addresses, offered as the prefilled value of the prompt.
 // Replace these placeholders, or just edit the list at the prompt.
-const RECIPIENTS: string[] = [
+const RECIPIENTS = [
   'recipient1@example.com',
   'recipient2@example.com',
   'recipient3@example.com',
@@ -213,7 +179,7 @@ const RECIPIENTS: string[] = [
 
 // Run the emailer. Pass `{ dryRun: true }` to print the computed plan to the
 // console without opening any compose window or sending anything.
-async function handler({ dryRun = false }: { dryRun?: boolean } = {}): Promise<void> {
+async function handler({ dryRun = false } = {}) {
   const rawRecipients = prompt('Recipient emails (comma-separated)', RECIPIENTS.join(','));
   if (rawRecipients === null) return;
   const addresses = parseRecipients(rawRecipients);
@@ -250,19 +216,15 @@ async function handler({ dryRun = false }: { dryRun?: boolean } = {}): Promise<v
   }
 }
 
-// Expose the entry points on the global scope so the built bundle
-// (`bun run build` -> dist/autoemailer1_main.js) can be pasted into the browser
-// console and driven with `handler()`.
-Object.assign(globalThis, {
-  handler,
-  send_email,
-  generator,
-  shuffle,
-  difficultyRanges,
-  formatLegend,
-  planEmails,
-  parseRecipients,
-});
-
-// Export the pure logic for unit testing and reuse.
-export { generator, shuffle, difficultyRanges, formatLegend, planEmails, parseRecipients };
+// Export the pure logic for unit testing. Guarded so the file still runs as a
+// plain browser-console script, where `module` is undefined.
+if (typeof module !== 'undefined' && module.exports) {
+  module.exports = {
+    generator,
+    shuffle,
+    difficultyRanges,
+    formatLegend,
+    planEmails,
+    parseRecipients,
+  };
+}

@@ -1,16 +1,18 @@
-import { test, expect, describe, afterEach } from 'bun:test';
-import {
+'use strict';
+
+const { test, expect, describe, afterEach } = require('bun:test');
+const {
   generator,
   shuffle,
   difficultyRanges,
   formatLegend,
   planEmails,
   parseRecipients,
-} from './autoemailer1_main.ts';
+} = require('./autoemailer1_main.js');
 
 // Count how many times each problem number appears across all recipients.
-function countAssignments(np: number[][]): Map<number, number> {
-  const counts = new Map<number, number>();
+function countAssignments(np) {
+  const counts = new Map();
   for (const recipient of np) {
     for (const problem of recipient) {
       counts.set(problem, (counts.get(problem) ?? 0) + 1);

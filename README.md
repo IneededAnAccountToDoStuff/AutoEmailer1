@@ -5,13 +5,13 @@ basic, intermediate, and hard tiers and spreading each problem across several
 recipients) and drives the Outlook web client from the browser console to email
 each recipient their assignment.
 
-The source lives in `autoemailer1_main.ts` (TypeScript). Pure logic —
-`generator`, `shuffle`, `difficultyRanges`, `formatLegend` — is exported and
-unit-tested; the DOM automation talks to the live Outlook web UI.
+The source lives in `autoemailer1_main.js`. Pure logic — `generator`,
+`shuffle`, `difficultyRanges`, `formatLegend` — is exported and unit-tested;
+the DOM automation talks to the live Outlook web UI.
 
 ## Requirements
 
-[Bun](https://bun.sh) (used as the package manager, test runner, and bundler).
+[Bun](https://bun.sh) (used as the package manager and test runner).
 
 ```sh
 bun install
@@ -19,20 +19,17 @@ bun install
 
 ## Scripts
 
-| Command             | What it does                          |
-| ------------------- | ------------------------------------- |
-| `bun test`          | Run the unit tests                    |
-| `bun run typecheck` | Type-check with `tsc --noEmit`        |
-| `bun run lint`      | Lint with ESLint + typescript-eslint  |
-| `bun run format`    | Format with Prettier                  |
-| `bun run build`     | Bundle to `dist/autoemailer1_main.js` |
+| Command          | What it does         |
+| ---------------- | -------------------- |
+| `bun test`       | Run the unit tests   |
+| `bun run lint`   | Lint with ESLint     |
+| `bun run format` | Format with Prettier |
 
 ## Usage
 
-1. `bun run build` to produce `dist/autoemailer1_main.js`.
-2. Open the Outlook web client, open the browser console, and paste the built
-   file's contents.
-3. Call `handler()` and answer the prompts: first a comma-separated list of
+1. Open the Outlook web client, open the browser console, and paste the
+   contents of `autoemailer1_main.js`.
+2. Call `handler()` and answer the prompts: first a comma-separated list of
    recipient emails (prefilled with the `RECIPIENTS` defaults), then the number
    of basic, intermediate, and hard problems.
 

@@ -1,32 +1,43 @@
 'use strict';
 
 const js = require('@eslint/js');
-const tseslint = require('typescript-eslint');
 
-module.exports = tseslint.config(
+module.exports = [
   {
-    ignores: ['node_modules/', '.isaac/', 'dist/'],
+    ignores: ['node_modules/', '.isaac/'],
   },
   js.configs.recommended,
-  ...tseslint.configs.recommended,
   {
     // Browser-console script: runs inside a web mail client. Its top-level
     // functions are entry points invoked manually from the console, so
     // "unused" definitions are expected.
-    files: ['autoemailer1_main.ts'],
+    files: ['autoemailer1_main.js'],
+    languageOptions: {
+      ecmaVersion: 2022,
+      sourceType: 'commonjs',
+      globals: {
+        document: 'readonly',
+        prompt: 'readonly',
+        alert: 'readonly',
+        console: 'readonly',
+        setTimeout: 'readonly',
+        module: 'writable',
+      },
+    },
     rules: {
       'no-unused-vars': 'off',
-      '@typescript-eslint/no-unused-vars': 'off',
     },
   },
   {
-    // This flat config is a CommonJS module.
-    files: ['eslint.config.js'],
+    // Node/Bun files: unit tests and this config itself.
+    files: ['**/*.test.js', 'eslint.config.js'],
     languageOptions: {
-      globals: { require: 'readonly', module: 'writable' },
-    },
-    rules: {
-      '@typescript-eslint/no-require-imports': 'off',
+      ecmaVersion: 2022,
+      sourceType: 'commonjs',
+      globals: {
+        module: 'writable',
+        require: 'readonly',
+      },
     },
   },
-);
+];
