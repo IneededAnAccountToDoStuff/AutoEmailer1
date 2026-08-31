@@ -1,7 +1,54 @@
 # AutoEmailer1
-An e-mailing program
 
-# How it works
+An e-mailing program. It computes question assignments (splitting problems into
+basic, intermediate, and hard tiers and spreading each problem across several
+recipients) and drives the Outlook web client from the browser console to email
+each recipient their assignment.
 
-send_email hijacks outlook.com to send an e-mail, using set_address & setsubject & set_body. generator generates the question assignments, and handler handles generating and sending the generated data.
+The source lives in `autoemailer1_main.js`. Pure logic — `generator`,
+`shuffle`, `difficultyRanges`, `formatLegend` — is exported and unit-tested;
+the DOM automation talks to the live Outlook web UI.
 
+## Requirements
+
+[Bun](https://bun.sh) (used as the package manager and test runner).
+
+```sh
+bun install
+```
+
+## Scripts
+
+| Command          | What it does         |
+| ---------------- | -------------------- |
+| `bun test`       | Run the unit tests   |
+| `bun run lint`   | Lint with ESLint     |
+| `bun run format` | Format with Prettier |
+
+## Usage
+
+1. Open the Outlook web client, open the browser console, and paste the
+   contents of `autoemailer1_main.js`.
+2. Call `handler()` and answer the prompts: first a comma-separated list of
+   recipient emails (prefilled with the `RECIPIENTS` defaults), then the number
+   of basic, intermediate, and hard problems.
+
+### Dry run
+
+To preview what would be sent without opening a compose window or sending
+anything, call:
+
+```js
+handler({ dryRun: true });
+```
+
+It still asks for the recipients and counts, then prints each recipient's
+subject and body to the console. Recommended before a real run.
+
+## How it works
+
+`generator` computes the question assignments and `planEmails` turns them into
+the per-recipient emails. `handler` collects the recipients and difficulty
+counts, then either prints the plan (dry run) or sends each email via
+`send_email`, which drives outlook.com using `set_address`, `setsubject`, and
+`set_body`.

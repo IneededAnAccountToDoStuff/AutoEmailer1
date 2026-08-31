@@ -1,0 +1,29 @@
+{
+  "name": "autoemailer1",
+  "version": "1.0.0",
+  "description": "An e-mailing program",
+  "main": "autoemailer1_main.js",
+  "scripts": {
+    "test": "bun test",
+    "lint": "eslint .",
+    "format": "prettier --write .",
+    "format:check": "prettier --check ."
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/IneededAnAccountToDoStuff/AutoEmailer1.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "bugs": {
+    "url": "https://github.com/IneededAnAccountToDoStuff/AutoEmailer1/issues"
+  },
+  "homepage": "https://github.com/IneededAnAccountToDoStuff/AutoEmailer1#readme",
+  "devDependencies": {
+    "@eslint/js": "^10.0.1",
+    "eslint": "^10.9.0",
+    "prettier": "^3.9.6"
+  }
+}
